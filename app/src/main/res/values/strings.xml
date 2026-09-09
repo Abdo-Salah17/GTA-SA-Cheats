@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">GTA SA Cheats</string>
+    <string name="accessibility_service_name">GTA SA Cheat Injector Service</string>
+    <string name="accessibility_service_description">Simulates character keyboard input directly into GTA San Andreas Mobile to trigger cheats instantly.</string>
+    <string name="overlay_service_notification_title">GTA SA Floating Cheats Active</string>
+    <string name="overlay_service_notification_text">Tap floating icon on screen during gameplay to open cheat menu.</string>
+    <string name="overlay_permission_title">Display Over Other Apps</string>
+    <string name="overlay_permission_desc">Allows the floating cheat action button and quick menu to stay visible while playing GTA San Andreas.</string>
+    <string name="accessibility_permission_title">Accessibility Key Injection</string>
+    <string name="accessibility_permission_desc">Enables automated character injection directly into the game process without manual typing.</string>
+    <string name="notification_permission_title">Foreground Notifications</string>
+    <string name="notification_permission_desc">Ensures the floating overlay service stays active in background while running intensive 3D games.</string>
+</resources>

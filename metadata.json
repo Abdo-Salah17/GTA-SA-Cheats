@@ -1,0 +1,6 @@
+{
+  "name": "GTA SA Cheats",
+  "description": "Floating overlay and accessibility cheat code injector for GTA San Andreas Mobile, optimized across Android 5.0 to 15+.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
