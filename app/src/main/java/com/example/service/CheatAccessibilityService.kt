@@ -1,10 +1,15 @@
 package com.example.service
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.GestureDescription
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.Path
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -32,36 +37,40 @@ class CheatAccessibilityService : AccessibilityService() {
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
             clipboard?.setPrimaryClip(ClipData.newPlainText("GTA SA Cheat", cleanCode))
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Clipboard error", e)
         }
 
-        // 2. إرسال الحروف عبر خيط خلفي ومحاكاة المفاتيح
-        Thread {
-            try {
-                val instrumentation = android.app.Instrumentation()
-                cleanCode.forEachIndexed { index, char ->
-                    val keyCode = getKeyCodeForChar(char)
-                    if (keyCode != -1) {
-                        instrumentation.sendKeyDownUpSync(keyCode)
-                        onCharTyped?.invoke(index + 1, cleanCode.length, char)
-                        Thread.sleep(120) // فاصل زمني لتتعرف اللعبة على الحروف
-                    }
-                }
+        // 2. محاكاة ضغط المفاتيح عبر KeyEvents
+        val handler = Handler(Looper.getMainLooper())
+        var currentIdx = 0
+
+        fun sendNextChar() {
+            if (currentIdx >= cleanCode.length) {
                 onFinished?.invoke(true)
-            } catch (e: Exception) {
-                // طريقة بديلة لإرسال الأحداث لو النظام منع Instrumentation
-                cleanCode.forEachIndexed { index, char ->
-                    val keyCode = getKeyCodeForChar(char)
-                    if (keyCode != -1) {
-                        sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
-                        sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
-                        onCharTyped?.invoke(index + 1, cleanCode.length, char)
-                        Thread.sleep(120)
-                    }
-                }
-                onFinished?.invoke(true)
+                return
             }
-        }.start()
+
+            val char = cleanCode[currentIdx]
+            val keyCode = getKeyCodeForChar(char)
+
+            if (keyCode != -1) {
+                try {
+                    // إرسال الضغطة للنظام
+                    sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+                    sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error sending key code $keyCode", e)
+                }
+            }
+
+            onCharTyped?.invoke(currentIdx + 1, cleanCode.length, char)
+            currentIdx++
+
+            // فاصل زمني 100 ملي ثانية بين كل حرف ليتعرف عليه المحرك
+            handler.postDelayed({ sendNextChar() }, 100)
+        }
+
+        sendNextChar()
     }
 
     private fun getKeyCodeForChar(char: Char): Int {
@@ -73,6 +82,9 @@ class CheatAccessibilityService : AccessibilityService() {
     }
 
     companion object {
+        private const val TAG = "CheatAccessibility"
+        
+        @Volatile
         var instance: CheatAccessibilityService? = null
             private set
     }
@@ -80,6 +92,7 @@ class CheatAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
+        Log.i(TAG, "Service connected successfully.")
     }
 
     override fun onDestroy() {
