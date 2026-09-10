@@ -1,16 +1,13 @@
 package com.example.service
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.GestureDescription
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.graphics.Path
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 
@@ -40,7 +37,7 @@ class CheatAccessibilityService : AccessibilityService() {
             Log.e(TAG, "Clipboard error", e)
         }
 
-        // 2. محاكاة ضغط المفاتيح عبر KeyEvents
+        // 2. إرسال الشفرة حرفاً بحرف إلى العنصر النشط على الشاشة
         val handler = Handler(Looper.getMainLooper())
         var currentIdx = 0
 
@@ -51,42 +48,39 @@ class CheatAccessibilityService : AccessibilityService() {
             }
 
             val char = cleanCode[currentIdx]
-            val keyCode = getKeyCodeForChar(char)
+            val targetNode = findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: rootInActiveWindow
 
-            if (keyCode != -1) {
-                try {
-                    // إرسال الضغطة للنظام
-                    sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
-                    sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error sending key code $keyCode", e)
+            if (targetNode != null) {
+                val arguments = Bundle().apply {
+                    putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, char.toString())
                 }
+                targetNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
             }
 
             onCharTyped?.invoke(currentIdx + 1, cleanCode.length, char)
             currentIdx++
 
-            // فاصل زمني 100 ملي ثانية بين كل حرف ليتعرف عليه المحرك
             handler.postDelayed({ sendNextChar() }, 100)
         }
 
         sendNextChar()
     }
 
-    private fun getKeyCodeForChar(char: Char): Int {
-        return when (char) {
-            in 'A'..'Z' -> KeyEvent.KEYCODE_A + (char - 'A')
-            in '0'..'9' -> KeyEvent.KEYCODE_0 + (char - '0')
-            else -> -1
-        }
-    }
-
     companion object {
         private const val TAG = "CheatAccessibility"
-        
+
         @Volatile
         var instance: CheatAccessibilityService? = null
             private set
+
+        @JvmStatic
+        val isServiceRunning: Boolean
+            get() = instance != null
+
+        @JvmStatic
+        fun isServiceRunning(context: Context? = null): Boolean {
+            return instance != null
+        }
     }
 
     override fun onServiceConnected() {
